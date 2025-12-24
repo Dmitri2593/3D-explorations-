@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voxel Dragon Peak</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #f0f4f8; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        canvas { display: block; }
+        #info {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: #1a3a5a;
+            pointer-events: none;
+            text-shadow: 0 1px 3px rgba(255,255,255,0.9);
+        }
+        h1 { margin: 0; font-size: 24px; letter-spacing: 1px; text-transform: uppercase; }
+        p { margin: 5px 0 0; opacity: 0.8; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h1>Blue Dragon Peak</h1>
+        <p>Voxel Art Interpretation • Use mouse to explore</p>
+    </div>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- Configuration ---
+        const VOXEL_SIZE = 1;
+        const MOUNTAIN_SIZE = 50;
+        const MOUNTAIN_HEIGHT = 35;
+        const DRAGON_COLOR = 0x244a7d;
+        const DRAGON_BELLY_COLOR = 0x5d80ad;
+        const SNOW_COLOR = 0xffffff;
+        const ROCK_COLOR = 0x4a5a6a;
+        const BIRD_COLOR = 0x1a1a1a;
+
+        // --- Setup ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf2f7fb);
+        scene.fog = new THREE.FogExp2(0xf2f7fb, 0.012);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(60, 45, 60);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.target.set(0, 15, 0);
+        controls.minDistance = 20;
+        controls.maxDistance = 150;
+
+        // --- Lighting ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.3);
+        sunLight.position.set(40, 80, 40);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.left = -60;
+        sunLight.shadow.camera.right = 60;
+        sunLight.shadow.camera.top = 60;
+        sunLight.shadow.camera.bottom = -60;
+        scene.add(sunLight);
+
+        // Fill light for softer shadows
+        const fillLight = new THREE.DirectionalLight(0xabcfff, 0.4);
+        fillLight.position.set(-40, 20, -40);
+        scene.add(fillLight);
+
+        // --- Materials ---
+        const rockMaterial = new THREE.MeshLambertMaterial({ color: ROCK_COLOR });
+        const snowMaterial = new THREE.MeshLambertMaterial({ color: SNOW_COLOR });
+        const dragonMaterial = new THREE.MeshLambertMaterial({ color: DRAGON_COLOR });
+        const dragonBellyMaterial = new THREE.MeshLambertMaterial({ color: DRAGON_BELLY_COLOR });
+        const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const birdMaterial = new THREE.MeshBasicMaterial({ color: BIRD_COLOR });
+
+        const boxGeometry = new THREE.BoxGeometry(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE);
+
+        // --- Mountains (Optimized with InstancedMesh) ---
+        function generateMountains() {
+            const rockPositions = [];
+            const snowPositions = [];
+
+            for (let x = -MOUNTAIN_SIZE / 2; x < MOUNTAIN_SIZE / 2; x++) {
+                for (let z = -MOUNTAIN_SIZE / 2; z < MOUNTAIN_SIZE / 2; z++) {
+                    const dist = Math.sqrt(x * x + z * z);
+                    const normalizedDist = dist / (MOUNTAIN_SIZE / 2);
+                    
+                    if (normalizedDist > 1) continue;
+
+                    // Sharper peak using power function
+                    let maxHeight = Math.pow(1 - normalizedDist, 1.5) * MOUNTAIN_HEIGHT;
+                    // Add some jaggedness
+                    maxHeight *= (0.7 + Math.random() * 0.6);
+                    
+                    const h = Math.floor(maxHeight);
+
+                    for (let y = 0; y <= h; y++) {
+                        const pos = new THREE.Vector3(x, y, z);
+                        if (y > h - 3 && y > MOUNTAIN_HEIGHT * 0.4) {
+                            snowPositions.push(pos);
+                        } else {
+                            rockPositions.push(pos);
+                        }
+                    }
+                }
+            }
+
+            const rockMesh = new THREE.InstancedMesh(boxGeometry, rockMaterial, rockPositions.length);
+            rockMesh.castShadow = true;
+            rockMesh.receiveShadow = true;
+            const dummy = new THREE.Object3D();
+            rockPositions.forEach((pos, i) => {
+                dummy.position.copy(pos);
+                dummy.updateMatrix();
+                rockMesh.setMatrixAt(i, dummy.matrix);
+            });
+            scene.add(rockMesh);
+
+            const snowMesh = new THREE.InstancedMesh(boxGeometry, snowMaterial, snowPositions.length);
+            snowMesh.castShadow = true;
+            snowMesh.receiveShadow = true;
+            snowPositions.forEach((pos, i) => {
+                dummy.position.copy(pos);
+                dummy.updateMatrix();
+                snowMesh.setMatrixAt(i, dummy.matrix);
+            });
+            scene.add(snowMesh);
+        }
+
+        generateMountains();
+
+        // --- Dragon ---
+        function createDragon() {
+            const dragonGroup = new THREE.Group();
+            
+            function addPart(x, y, z, w, h, d, material, rot = {x:0, y:0, z:0}) {
+                const geom = new THREE.BoxGeometry(w, h, d);
+                const mesh = new THREE.Mesh(geom, material);
+                mesh.position.set(x, y, z);
+                mesh.rotation.set(rot.x, rot.y, rot.z);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                dragonGroup.add(mesh);
+                return mesh;
+            }
+
+            // Body
+            addPart(0, 0, 0, 3, 3, 6, dragonMaterial);
+            addPart(0, -0.5, 0.5, 2.2, 2.5, 5.5, dragonBellyMaterial); // Belly
+            
+            // Neck & Head
+            const neck = addPart(0, 2.5, 2.5, 1.8, 3, 1.8, dragonMaterial, {x: -Math.PI/6, y:0, z:0});
+            const head = addPart(0, 5, 4.5, 2.5, 2.5, 3.5, dragonMaterial);
+            
+            // Eyes
+            addPart(0.9, 5.8, 5.8, 0.5, 0.5, 0.5, eyeMaterial);
+            addPart(-0.9, 5.8, 5.8, 0.5, 0.5, 0.5, eyeMaterial);
+
+            // Horns/Spikes on head
+            addPart(0.8, 7, 4.5, 0.4, 2, 0.4, dragonMaterial, {x: -0.3, y:0, z:0.2});
+            addPart(-0.8, 7, 4.5, 0.4, 2, 0.4, dragonMaterial, {x: -0.3, y:0, z:-0.2});
+            addPart(0.4, 6.8, 3.5, 0.3, 1.5, 0.3, dragonMaterial, {x: -0.5, y:0, z:0.1});
+            addPart(-0.4, 6.8, 3.5, 0.3, 1.5, 0.3, dragonMaterial, {x: -0.5, y:0, z:-0.1});
+
+            // Legs
+            const legW = 1.2, legH = 3, legD = 1.2;
+            addPart(1.6, -2, 2, legW, legH, legD, dragonMaterial); // FR
+            addPart(-1.6, -2, 2, legW, legH, legD, dragonMaterial); // FL
+            addPart(1.8, -2, -2, legW, legH, legD, dragonMaterial); // BR
+            addPart(-1.8, -2, -2, legW, legH, legD, dragonMaterial); // BL
+
+            // Tail (Segmented)
+            for(let i = 1; i <= 6; i++) {
+                const tz = -3 - (i * 1.2);
+                const ty = -0.5 * i;
+                const scale = 1 - (i * 0.12);
+                addPart(0, ty, tz, 2.5 * scale, 2 * scale, 1.5, dragonMaterial, {x: 0.2, y:0, z:0});
+            }
+
+            // Wings (More stylized)
+            const createWing = (side) => {
+                const wing = new THREE.Group();
+                const mainBone = new THREE.Mesh(new THREE.BoxGeometry(10, 0.5, 0.8), dragonMaterial);
+                mainBone.position.set(5 * side, 0, 0);
+                wing.add(mainBone);
+
+                // Membrane voxels
+                for(let i=0; i<8; i++) {
+                    const membrane = new THREE.Mesh(new THREE.BoxGeometry(1, 0.2, 5 - i*0.4), dragonMaterial);
+                    membrane.position.set((2 + i) * side, -0.2, -2);
+                    wing.add(membrane);
+                }
+                
+                wing.position.set(1.5 * side, 1.5, -1);
+                return wing;
+            };
+
+            const leftWing = createWing(1);
+            leftWing.rotation.set(0, -Math.PI/4, Math.PI/6);
+            dragonGroup.add(leftWing);
+
+            const rightWing = createWing(-1);
+            rightWing.rotation.set(0, Math.PI/4, -Math.PI/6);
+            dragonGroup.add(rightWing);
+
+            // Spikes on back
+            for(let i=0; i<4; i++) {
+                addPart(0, 1.8, 2 - i*1.5, 0.5, 1, 0.5, dragonMaterial, {x: 0.5, y:0, z:0});
+            }
+
+            dragonGroup.position.set(0, MOUNTAIN_HEIGHT + 3, 0);
+            scene.add(dragonGroup);
+            return { group: dragonGroup, leftWing, rightWing };
+        }
+
+        const dragon = createDragon();
+
+        // --- Birds ---
+        const birds = [];
+        function createBirds() {
+            for(let i=0; i<5; i++) {
+                const bird = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.8), birdMaterial);
+                const wingL = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 0.3), birdMaterial);
+                wingL.position.set(0.4, 0, 0);
+                bird.add(wingL);
+                const wingR = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 0.3), birdMaterial);
+                wingR.position.set(-0.4, 0, 0);
+                bird.add(wingR);
+
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 30 + Math.random() * 20;
+                bird.position.set(Math.cos(angle) * dist, 20 + Math.random() * 20, Math.sin(angle) * dist);
+                
+                scene.add(bird);
+                birds.push({ mesh: bird, angle, dist, speed: 0.005 + Math.random() * 0.01, wingL, wingR });
+            }
+        }
+        createBirds();
+
+        // --- Animation ---
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = Date.now() * 0.001;
+
+            controls.update();
+            
+            // Dragon hovering
+            dragon.group.position.y = (MOUNTAIN_HEIGHT + 2) + Math.sin(time * 1.5) * 0.8;
+            dragon.leftWing.rotation.z = Math.PI/6 + Math.sin(time * 1.5) * 0.2;
+            dragon.rightWing.rotation.z = -Math.PI/6 - Math.sin(time * 1.5) * 0.2;
+            
+            // Birds circling
+            birds.forEach(b => {
+                b.angle += b.speed;
+                b.mesh.position.x = Math.cos(b.angle) * b.dist;
+                b.mesh.position.z = Math.sin(b.angle) * b.dist;
+                b.mesh.lookAt(Math.cos(b.angle + 0.1) * b.dist, b.mesh.position.y, Math.sin(b.angle + 0.1) * b.dist);
+                b.wingL.rotation.z = Math.sin(time * 10) * 0.5;
+                b.wingR.rotation.z = -Math.sin(time * 10) * 0.5;
+            });
+            
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
