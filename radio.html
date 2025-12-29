@@ -1,12 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yellow Retro Radio</title>
+    <title>Mint Retro Radio</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #fdf6e3; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        canvas { display: block; }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #e8e8e8;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        canvas {
+            display: block;
+        }
+
         #ui {
             position: absolute;
             bottom: 30px;
@@ -15,19 +25,37 @@
             background: rgba(255, 255, 255, 0.95);
             padding: 15px 40px;
             border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
             text-align: center;
             pointer-events: none;
-            border-bottom: 5px solid #f1c40f;
+            border-bottom: 5px solid #98d4bb;
             min-width: 300px;
             transition: opacity 0.3s;
         }
-        #station-info { font-weight: bold; color: #2c3e50; font-size: 20px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
-        #volume-info { color: #7f8c8d; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; }
+
+        #station-info {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 20px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #volume-info {
+            color: #7f8c8d;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
         #overlay {
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -36,8 +64,20 @@
             z-index: 100;
             cursor: pointer;
         }
-        #overlay h1 { font-size: 54px; margin-bottom: 10px; color: #f1c40f; font-weight: 900; letter-spacing: -2px; }
-        #overlay p { font-size: 20px; opacity: 0.7; }
+
+        #overlay h1 {
+            font-size: 54px;
+            margin-bottom: 10px;
+            color: #98d4bb;
+            font-weight: 900;
+            letter-spacing: -2px;
+        }
+
+        #overlay p {
+            font-size: 20px;
+            opacity: 0.7;
+        }
+
         .hint {
             position: absolute;
             top: 25px;
@@ -50,6 +90,7 @@
             font-size: 12px;
             letter-spacing: 1px;
         }
+
         #color-picker {
             position: absolute;
             left: 30px;
@@ -60,24 +101,28 @@
             gap: 15px;
             z-index: 10;
         }
+
         .color-circle {
             width: 30px;
             height: 30px;
             border-radius: 50%;
             cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
             border: 2px solid transparent;
             transition: transform 0.2s, border-color 0.2s;
         }
+
         .color-circle:hover {
             transform: scale(1.1);
         }
+
         .color-circle.selected {
             border: 3px solid #333;
             transform: scale(1.1);
         }
     </style>
 </head>
+
 <body>
     <div id="overlay">
         <h1>RETRO RADIO</h1>
@@ -124,25 +169,25 @@
         let audioContext = null;
 
         const player = document.getElementById('radio-player');
-        
+
         player.onerror = (e) => {
             console.warn("Stream failed, trying next...", e);
             if (isPoweredOn && player.volume > 0) setTimeout(cycleStation, 1000);
         };
-        
+
         const stationDisplay = document.getElementById('station-info');
         const volumeDisplay = document.getElementById('volume-info');
         const overlay = document.getElementById('overlay');
 
         // --- Color Picker Logic ---
         const radioColors = [
-            0xf1c40f, // Yellow (Default)
+            0x98d4bb, // Mint Green (Default)
+            0xf1c40f, // Yellow 
             0xe74c3c, // Red
             0x3498db, // Blue
-            0x2ecc71, // Green
             0x9b59b6  // Purple
         ];
-        
+
         const pickerContainer = document.getElementById('color-picker');
         radioColors.forEach((color, index) => {
             const circle = document.createElement('div');
@@ -152,10 +197,13 @@
                 // Update selection UI
                 document.querySelectorAll('.color-circle').forEach(c => c.classList.remove('selected'));
                 circle.classList.add('selected');
-                
-                // Update Radio Material
-                if (mats.yellow) {
-                    mats.yellow.color.setHex(color);
+
+                // Update Radio Material (mint body color)
+                if (mats.mint) {
+                    mats.mint.color.setHex(color);
+                    // Also update the darker shade
+                    const darkerColor = new THREE.Color(color).multiplyScalar(0.85);
+                    mats.mintDark.color.copy(darkerColor);
                 }
                 // Update UI Border
                 document.getElementById('ui').style.borderBottomColor = '#' + color.toString(16).padStart(6, '0');
@@ -175,15 +223,15 @@
 
         function playStaticNoise() {
             if (!audioContext) return;
-            
+
             const bufferSize = audioContext.sampleRate * 0.5; // 0.5 seconds
             const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
             const data = buffer.getChannelData(0);
-            
+
             for (let i = 0; i < bufferSize; i++) {
                 // White noise
                 data[i] = (Math.random() * 2 - 1) * 0.3; // 0.3 volume
-                
+
                 // Fade out at end
                 if (i > bufferSize - 1000) {
                     data[i] *= (bufferSize - i) / 1000;
@@ -194,7 +242,7 @@
             noise.buffer = buffer;
             const gainNode = audioContext.createGain();
             gainNode.gain.value = volumeLevels[currentVolumeIndex]; // Match current volume
-            
+
             noise.connect(gainNode);
             gainNode.connect(audioContext.destination);
             noise.start();
@@ -202,27 +250,27 @@
 
         function playClickSound() {
             if (!audioContext) return;
-            
+
             const osc = audioContext.createOscillator();
             const gain = audioContext.createGain();
-            
+
             osc.connect(gain);
             gain.connect(audioContext.destination);
-            
+
             // Short, mechanical click sound
             osc.frequency.setValueAtTime(800, audioContext.currentTime);
             osc.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.05);
-            
+
             gain.gain.setValueAtTime(0.15, audioContext.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
-            
+
             osc.start();
             osc.stop(audioContext.currentTime + 0.05);
         }
 
         function updateUI() {
             const vol = volumeLevels[currentVolumeIndex];
-            
+
             if (vol === 0) {
                 volumeDisplay.innerText = "Radio is off";
                 stationDisplay.style.opacity = "0.5";
@@ -231,37 +279,29 @@
                 volumeDisplay.innerText = `Volume: ${Math.round(vol * 100)}%`;
                 stationDisplay.style.opacity = "1";
             }
-            
+
             // Update light intensity based on volume
-            if (dialLight) {
-                dialLight.intensity = vol > 0 ? 2.0 : 0;
-            }
-            if (dialMaterial) {
-                dialMaterial.color.setHex(vol > 0 ? 0xffffff : 0xeeeeee);
-                dialMaterial.emissiveIntensity = vol > 0 ? 0.8 : 0;
-            }
-            if (centralPanelMaterial) {
-                centralPanelMaterial.color.setHex(vol > 0 ? 0xffffff : 0xcccccc); // White when On, Grey when Off
-            }
+            // (Dial light removed to prevent flickering - using scene lighting only)
+            // Dial area updates handled by dialMaterial above
 
             updateCats();
         }
 
         function updateStation() {
             if (!isPoweredOn) return;
-            
+
             playStaticNoise();
-            
+
             const station = stations[currentStationIndex];
             stationDisplay.innerText = station.name;
             player.src = station.url;
             player.load();
-            
+
             // Only play if volume > 0
             if (volumeLevels[currentVolumeIndex] > 0) {
                 player.play().catch(console.error);
             }
-            
+
             updateCats(); // Re-check if cats should show for this station
         }
 
@@ -269,11 +309,11 @@
             currentVolumeIndex = (currentVolumeIndex + 1) % volumeLevels.length;
             const vol = volumeLevels[currentVolumeIndex];
             player.volume = vol;
-            
+
             if (vol > 0 && player.paused) {
                 player.play().catch(console.error);
             }
-            
+
             updateUI();
             return currentVolumeIndex;
         }
@@ -295,16 +335,16 @@
 
         // --- Three.js Scene Setup ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xfdf6e3);
-        
+        scene.background = new THREE.Color(0xe8e8e8);
+
         const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(50, 40, 80);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        // Shadows disabled to prevent flickering during rotation
+        renderer.shadowMap.enabled = false;
         document.body.appendChild(renderer.domElement);
 
         const controls = new OrbitControls(camera, renderer.domElement);
@@ -312,258 +352,404 @@
         controls.minDistance = 20;
         controls.maxDistance = 200;
 
-        // Lights
-        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-        const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+        // Lights - Simple setup without shadows
+        scene.add(new THREE.AmbientLight(0xffffff, 0.8));  // Increased ambient
+        const sun = new THREE.DirectionalLight(0xffffff, 1.0);
         sun.position.set(40, 60, 40);
-        sun.castShadow = true;
-        sun.shadow.mapSize.set(2048, 2048);
-        sun.shadow.bias = -0.0001;
+        // Shadow casting disabled
         scene.add(sun);
 
-        const pointLight = new THREE.PointLight(0xfff0dd, 0.5);
-        pointLight.position.set(-30, 20, 20);
-        scene.add(pointLight);
+        // Secondary fill light from opposite side
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+        fillLight.position.set(-40, 30, -40);
+        scene.add(fillLight);
 
-        // --- Materials ---
+        // --- Materials (Matching Reference Images) ---
         const mats = {
-            yellow: new THREE.MeshStandardMaterial({ color: 0xf1c40f, roughness: 0.2 }),
-            brown: new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 0.6 }),
-            tan: new THREE.MeshStandardMaterial({ color: 0xd2b48c, roughness: 0.4 }),
-            white: new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.3 }),
-            grey: new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.5 }),
-            darkGrey: new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.7 }),
-            black: new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.5 }),
-            metal: new THREE.MeshStandardMaterial({ color: 0xbdc3c7, roughness: 0.2, metalness: 0.8 }),
-            red: new THREE.MeshStandardMaterial({ color: 0xcc0000, roughness: 0.3 }),
-            transparent: new THREE.MeshPhysicalMaterial({ 
-                color: 0xffffff, 
-                transparent: true, 
-                opacity: 0.3, 
-                roughness: 0, 
-                metalness: 0.1,
-                transmission: 0.9,
-                thickness: 0.5
+            // Main body - Mint Green
+            mint: new THREE.MeshStandardMaterial({ color: 0x98d4bb, roughness: 0.3 }),
+            mintDark: new THREE.MeshStandardMaterial({ color: 0x7ec4a7, roughness: 0.35 }),
+            // Accent - Orange/Tan for dial area and handle
+            orange: new THREE.MeshStandardMaterial({ color: 0xd4915a, roughness: 0.4 }),
+            orangeLight: new THREE.MeshStandardMaterial({ color: 0xe6a86b, roughness: 0.35 }),
+            // Speaker grill
+            white: new THREE.MeshStandardMaterial({ color: 0xf5f5f0, roughness: 0.3 }),
+            cream: new THREE.MeshStandardMaterial({ color: 0xeeeee8, roughness: 0.35 }),
+            // Greys for handle supports, antenna
+            grey: new THREE.MeshStandardMaterial({ color: 0xa8a8a8, roughness: 0.4 }),
+            greyLight: new THREE.MeshStandardMaterial({ color: 0xc0c0c0, roughness: 0.35 }),
+            greyDark: new THREE.MeshStandardMaterial({ color: 0x707070, roughness: 0.5 }),
+            // Knobs and back panel
+            black: new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6 }),
+            blackMatte: new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 }),
+            // Metal for antenna
+            metal: new THREE.MeshStandardMaterial({ color: 0xb0b0b0, roughness: 0.2, metalness: 0.7 }),
+            // Red accent
+            red: new THREE.MeshStandardMaterial({ color: 0xcc3333, roughness: 0.4 }),
+            // Dial display
+            dialBg: new THREE.MeshStandardMaterial({ color: 0xf8f4e8, roughness: 0.3 }),
+            transparent: new THREE.MeshPhysicalMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.25,
+                roughness: 0.1,
+                metalness: 0.05,
+                transmission: 0.85,
+                thickness: 0.3
             }),
             emissiveDial: new THREE.MeshStandardMaterial({
-                color: 0xeeeeee,
-                emissive: 0xffffff,
+                color: 0xfff8e8,
+                emissive: 0xfff0d0,
                 emissiveIntensity: 0,
-                roughness: 0.4
-            }),
-            centralPanel: new THREE.MeshStandardMaterial({
-                color: 0xcccccc, // Light grey when off
-                roughness: 0.4
+                roughness: 0.3
             })
         };
 
-        let dialLight, dialMaterial = mats.emissiveDial, centralPanelMaterial = mats.centralPanel;
+        // Keep reference for dynamic updates
+        let dialLight, dialMaterial = mats.emissiveDial;
 
         // --- Model Construction ---
         const radioGroup = new THREE.Group();
 
-        function createBrick(w, h, d, mat, x=0, y=0, z=0, parent=radioGroup) {
+        // Helper function to create a voxel brick
+        function voxel(w, h, d, mat, x = 0, y = 0, z = 0, parent = radioGroup) {
             const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
             mesh.position.set(x, y, z);
             mesh.castShadow = true;
             mesh.receiveShadow = true;
             parent.add(mesh);
-            
-            // Studs (Top)
-            if (h >= 0.4) { // Only if not a flat plate
-                const studGeom = new THREE.CylinderGeometry(0.35, 0.35, 0.2, 12);
-                const studMat = mat;
-                
-                // Determine stud grid
-                const studW = Math.floor(w);
-                const studD = Math.floor(d);
-                
-                if (studW >= 1 && studD >= 1) {
-                    const instancedStud = new THREE.InstancedMesh(studGeom, studMat, studW * studD);
-                    instancedStud.castShadow = true;
-                    instancedStud.receiveShadow = true;
-                    let idx = 0;
-                    const dummy = new THREE.Object3D();
-                    
-                    for(let ix = 0; ix < studW; ix++) {
-                        for(let iz = 0; iz < studD; iz++) {
-                            dummy.position.set(
-                                x - (studW-1)/2 + ix, 
-                                y + h/2 + 0.1, 
-                                z - (studD-1)/2 + iz
-                            );
-                            dummy.updateMatrix();
-                            instancedStud.setMatrixAt(idx++, dummy.matrix);
-                        }
-                    }
-                    parent.add(instancedStud);
-                }
-            }
             return mesh;
         }
 
-        // --- 1. Main Chassis (Yellow) ---
-        // Base plate
-        createBrick(32, 1, 14, mats.yellow, 0, -10, 0);
-        // Top plate
-        createBrick(32, 1, 14, mats.yellow, 0, 10, 0);
-        // Sides
-        createBrick(2, 19, 14, mats.yellow, -15, 0, 0);
-        createBrick(2, 19, 14, mats.yellow, 15, 0, 0);
+        // ============================================================
+        // MAIN BODY - Mint Green Chassis
+        // ============================================================
+        const bodyWidth = 42;  // 50% wider (was 28)
+        const bodyHeight = 16; // 50% shorter (was 32)
+        const bodyDepth = 10;
 
-        // --- 2. Front Face Details ---
-        
-        // Dial Surround (Dynamic Material)
-        createBrick(28, 8, 2, mats.centralPanel, 0, 5, 5); // Main block
-        createBrick(4, 8, 1, mats.centralPanel, -12, 5, 6.5); // Left knob housing
-        createBrick(4, 8, 1, mats.centralPanel, 12, 5, 6.5); // Right knob housing
+        // Front face - mint green frame
+        voxel(bodyWidth, bodyHeight, 1, mats.mint, 0, 0, bodyDepth / 2); // Front panel
 
-        // Dial Glass & Light
-        const dialGlass = new THREE.Mesh(new THREE.BoxGeometry(20, 4, 0.5), mats.transparent);
-        dialGlass.position.set(0, 5, 6.1);
+        // Left side panel
+        voxel(1, bodyHeight, bodyDepth, mats.mint, -bodyWidth / 2 + 0.5, 0, 0);
+        // Right side panel
+        voxel(1, bodyHeight, bodyDepth, mats.mint, bodyWidth / 2 - 0.5, 0, 0);
+
+        // Top panel
+        voxel(bodyWidth, 1, bodyDepth, mats.mint, 0, bodyHeight / 2 - 0.5, 0);
+        // Bottom panel
+        voxel(bodyWidth, 1, bodyDepth, mats.mint, 0, -bodyHeight / 2 + 0.5, 0);
+
+        // Front face detail layers (stepped inward)
+        voxel(bodyWidth - 2, bodyHeight - 2, 0.5, mats.mintDark, 0, 0, bodyDepth / 2 - 0.75);
+
+        // ============================================================
+        // DIAL SECTION - Orange/Tan Area at Top
+        // ============================================================
+        const dialSectionY = 4;  // Adjusted for shorter body
+        const dialWidth = 32;    // Wider dial area
+        const dialHeight = 5;
+
+        // Orange dial surround
+        voxel(dialWidth, dialHeight, 1.5, mats.orange, 0, dialSectionY, bodyDepth / 2 + 0.5);
+
+        // Inner dial frame
+        voxel(dialWidth - 2, dialHeight - 1, 0.5, mats.orangeLight, 0, dialSectionY, bodyDepth / 2 + 1);
+
+        // Frequency display window (cream/white background)
+        const displayWidth = 18;  // Wider display
+        const displayHeight = 2.5;
+        voxel(displayWidth, displayHeight, 0.3, mats.dialBg, 0, dialSectionY, bodyDepth / 2 + 1.3);
+
+        // Glass overlay
+        const dialGlass = new THREE.Mesh(
+            new THREE.BoxGeometry(displayWidth + 0.5, displayHeight + 0.3, 0.2),
+            mats.transparent
+        );
+        dialGlass.position.set(0, dialSectionY, bodyDepth / 2 + 1.5);
         radioGroup.add(dialGlass);
 
-        // Dial Backing (Emissive)
-        const dialBacking = new THREE.Mesh(new THREE.BoxGeometry(19.8, 3.8, 0.1), mats.emissiveDial);
-        dialBacking.position.set(0, 5, 5.8);
+        // Dial backing (emissive when on)
+        const dialBacking = new THREE.Mesh(
+            new THREE.BoxGeometry(displayWidth - 0.2, displayHeight - 0.2, 0.1),
+            mats.emissiveDial
+        );
+        dialBacking.position.set(0, dialSectionY, bodyDepth / 2 + 1.2);
         radioGroup.add(dialBacking);
 
-        // Dial Light Source
-        dialLight = new THREE.PointLight(0xffffff, 0, 15);
-        dialLight.position.set(0, 5, 6);
-        radioGroup.add(dialLight);
+        // Dial light removed - using scene lighting only
 
-        // Frequency Markings (Voxel lines inside dial)
-        for(let i=-8; i<=8; i+=2) {
-            const mark = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1, 0.05), mats.black);
-            mark.position.set(i, 4.5, 5.9);
-            radioGroup.add(mark);
+        // Frequency markings
+        for (let i = -7; i <= 7; i++) {
+            const markHeight = (i % 2 === 0) ? 1.2 : 0.6;
+            const mark = voxel(0.15, markHeight, 0.1, mats.black, i * 1.1, dialSectionY - 0.3, bodyDepth / 2 + 1.4);
         }
 
-        // Needle
-        const needle = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 0.2), mats.red);
-        needle.position.set(-8, 5, 6.0);
+        // Tuning needle (red)
+        const needle = new THREE.Mesh(
+            new THREE.BoxGeometry(0.3, displayHeight - 0.3, 0.15),
+            mats.red
+        );
+        needle.position.set(-7, dialSectionY, bodyDepth / 2 + 1.45);
         radioGroup.add(needle);
 
-        // Grill Area (White/Grey)
-        createBrick(28, 11, 1, mats.white, 0, -5, 5); // Backing for grill
-        
-        // Grill Slats (Horizontal)
-        for(let i=0; i<8; i++) {
-            const yPos = -1 - i*1.2;
-            const slat = new THREE.Mesh(new THREE.BoxGeometry(24, 0.4, 0.8), mats.grey);
-            slat.position.set(0, yPos, 5.6);
-            slat.castShadow = true;
-            slat.receiveShadow = true;
-            radioGroup.add(slat);
-        }
+        // Small button below dial
+        voxel(2, 1, 0.8, mats.black, 0, dialSectionY - 3.5, bodyDepth / 2 + 0.8);
 
-        // --- 3. Back Panel (Technic Style) ---
-        const backGroup = new THREE.Group();
-        
-        // Black Frame
-        createBrick(28, 18, 1, mats.black, 0, 0, -6);
-        
-        // Technic Holes (Visualized as cylinders)
-        const holeGeom = new THREE.CylinderGeometry(0.3, 0.3, 1.2, 8);
-        holeGeom.rotateX(Math.PI/2);
-        const holesMesh = new THREE.InstancedMesh(holeGeom, mats.darkGrey, 150);
-        
-        let hIdx = 0;
-        const hDummy = new THREE.Object3D();
-        for(let x = -12; x <= 12; x += 2) {
-            for(let y = -8; y <= 8; y += 2) {
-                // Create a grid pattern with some "solid" areas skipped
-                if (Math.abs(x) < 4 && Math.abs(y) < 4) continue; // Center solid block
-                hDummy.position.set(x, y, -6);
-                hDummy.updateMatrix();
-                holesMesh.setMatrixAt(hIdx++, hDummy.matrix);
+        // ============================================================
+        // KNOBS - Black Octagonal Style
+        // ============================================================
+        function createOctagonalKnob(x, y, z, name) {
+            const knobGroup = new THREE.Group();
+            knobGroup.position.set(x, y, z);
+            knobGroup.name = name;
+
+            // Main knob body (octagonal approximation using cylinder with 8 sides)
+            const knobGeom = new THREE.CylinderGeometry(2.5, 2.5, 2, 8);
+            knobGeom.rotateX(Math.PI / 2);
+            const knobBody = new THREE.Mesh(knobGeom, mats.black);
+            knobGroup.add(knobBody);
+
+            // Center cap
+            const capGeom = new THREE.CylinderGeometry(1.2, 1.2, 0.5, 8);
+            capGeom.rotateX(Math.PI / 2);
+            const cap = new THREE.Mesh(capGeom, mats.blackMatte);
+            cap.position.z = 1;
+            knobGroup.add(cap);
+
+            // Grip ridges (cross pattern)
+            for (let i = 0; i < 4; i++) {
+                const ridge = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.3, 5, 2.2),
+                    mats.blackMatte
+                );
+                ridge.rotation.z = (i / 4) * Math.PI;
+                ridge.position.z = 0;
+                knobGroup.add(ridge);
             }
+
+            // Pixelated edge detail (small cubes around perimeter)
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                const px = Math.cos(angle) * 2.8;
+                const py = Math.sin(angle) * 2.8;
+                const pixel = voxel(0.6, 0.6, 0.6, mats.greyLight, px, py, 0.8, knobGroup);
+            }
+
+            radioGroup.add(knobGroup);
+            return knobGroup;
         }
-        backGroup.add(holesMesh);
-        radioGroup.add(backGroup);
 
+        const leftKnob = createOctagonalKnob(-16, dialSectionY, bodyDepth / 2 + 1.5, "volumeKnob");
+        const rightKnob = createOctagonalKnob(16, dialSectionY, bodyDepth / 2 + 1.5, "stationKnob");
 
-        // --- 4. Controls & Knobs ---
-        const knobGeom = new THREE.CylinderGeometry(2.2, 2.2, 1.5, 32);
-        knobGeom.rotateX(Math.PI/2);
-        
-        const leftKnob = new THREE.Mesh(knobGeom, mats.black);
-        leftKnob.position.set(-12, 5, 7);
-        leftKnob.name = "volumeKnob";
-        radioGroup.add(leftKnob);
+        // ============================================================
+        // SPEAKER GRILL - White/Cream with Horizontal Slats
+        // ============================================================
+        const grillY = -4;        // Adjusted for shorter body
+        const grillWidth = 36;    // Wider grill
+        const grillHeight = 8;    // Shorter grill
 
-        // Add ridges to knobs
-        const ridgeGeom = new THREE.BoxGeometry(0.4, 4.4, 1.6);
-        const ridgeMesh = new THREE.InstancedMesh(ridgeGeom, mats.black, 6);
-        const kDummy = new THREE.Object3D();
-        for(let i=0; i<6; i++) {
-            kDummy.rotation.z = (i / 6) * Math.PI;
-            kDummy.updateMatrix();
-            ridgeMesh.setMatrixAt(i, kDummy.matrix);
+        // White backing panel
+        voxel(grillWidth, grillHeight, 1, mats.white, 0, grillY, bodyDepth / 2 + 0.2);
+
+        // Horizontal grill slats
+        const slatCount = 6;      // Fewer slats for shorter height
+        const slatSpacing = grillHeight / (slatCount + 1);
+        for (let i = 1; i <= slatCount; i++) {
+            const slatY = grillY + grillHeight / 2 - i * slatSpacing;
+            // Main slat
+            voxel(grillWidth - 2, 0.5, 1.2, mats.cream, 0, slatY, bodyDepth / 2 + 0.8);
+            // Shadow/gap effect
+            voxel(grillWidth - 2, 0.3, 0.2, mats.greyDark, 0, slatY - 0.3, bodyDepth / 2 + 0.3);
         }
-        leftKnob.add(ridgeMesh.clone());
-        
-        const rightKnob = new THREE.Mesh(knobGeom, mats.black);
-        rightKnob.position.set(12, 5, 7);
-        rightKnob.name = "stationKnob";
-        rightKnob.add(ridgeMesh.clone());
-        radioGroup.add(rightKnob);
 
+        // Vertical dividers in grill (creating grid pattern)
+        for (let i = -3; i <= 3; i++) {
+            if (i === 0) continue; // Skip center
+            voxel(0.3, grillHeight - 2, 0.8, mats.cream, i * 5, grillY, bodyDepth / 2 + 0.9);
+        }
 
-        // --- 5. Handle ---
-        // Top Bar
-        const handleBar = createBrick(34, 1, 2, mats.brown, 0, 15, 0);
-        // Side Arms (angled)
-        const armGeom = new THREE.BoxGeometry(1.5, 10, 2);
-        const armL = new THREE.Mesh(armGeom, mats.grey);
-        armL.position.set(-16, 10, 0);
-        armL.rotation.z = 0.1;
-        radioGroup.add(armL);
+        // Mint green border around grill
+        voxel(grillWidth + 2, 1, 1.5, mats.mint, 0, grillY + grillHeight / 2 + 0.5, bodyDepth / 2 + 0.5);
+        voxel(grillWidth + 2, 1, 1.5, mats.mint, 0, grillY - grillHeight / 2 - 0.5, bodyDepth / 2 + 0.5);
+        voxel(1, grillHeight, 1.5, mats.mint, -grillWidth / 2 - 0.5, grillY, bodyDepth / 2 + 0.5);
+        voxel(1, grillHeight, 1.5, mats.mint, grillWidth / 2 + 0.5, grillY, bodyDepth / 2 + 0.5);
 
-        const armR = new THREE.Mesh(armGeom, mats.grey);
-        armR.position.set(16, 10, 0);
-        armR.rotation.z = -0.1;
-        radioGroup.add(armR);
+        // Bottom accent bar (grey)
+        voxel(grillWidth - 4, 1.5, 0.8, mats.grey, 0, grillY - grillHeight / 2 + 1.5, bodyDepth / 2 + 1);
 
-        // Hinge pins
-        const pinGeom = new THREE.CylinderGeometry(1, 1, 3, 16);
-        pinGeom.rotateZ(Math.PI/2);
-        const pinL = new THREE.Mesh(pinGeom, mats.grey);
-        pinL.position.set(-16, 5, 0);
-        radioGroup.add(pinL);
-        const pinR = new THREE.Mesh(pinGeom, mats.grey);
-        pinR.position.set(16, 5, 0);
-        radioGroup.add(pinR);
+        // ============================================================
+        // LEFT SIDE DETAILS
+        // ============================================================
+        // Slider switch
+        const switchY = -2;  // Adjusted for shorter body
+        voxel(0.8, 3, 2, mats.greyLight, -bodyWidth / 2, switchY, 0);
+        voxel(0.6, 1.5, 1.5, mats.grey, -bodyWidth / 2 - 0.3, switchY + 0.3, 0);
 
+        // Side vents (small horizontal lines)
+        for (let i = 0; i < 2; i++) {
+            voxel(0.3, 0.5, 3, mats.greyDark, -bodyWidth / 2 - 0.2, 4 - i * 1.5, 0);
+        }
 
-        // --- 6. Antenna ---
+        // ============================================================
+        // RIGHT SIDE DETAILS
+        // ============================================================
+        // Additional side detail
+        for (let i = 0; i < 2; i++) {
+            voxel(0.3, 0.5, 3, mats.greyDark, bodyWidth / 2 + 0.2, 4 - i * 1.5, 0);
+        }
+
+        // ============================================================
+        // HANDLE - Grey Supports with Orange Bar
+        // ============================================================
+        const handleY = bodyHeight / 2 + 2.5;  // Adjusted for shorter body
+
+        // Grey side supports (stepped/blocky design)
+        const supportGroup = new THREE.Group();
+
+        // Left support column (smaller for shorter body)
+        voxel(1.5, 4, 2, mats.grey, -bodyWidth / 2 + 1, bodyHeight / 2 - 1, 0, supportGroup);
+        voxel(1.5, 3, 2.5, mats.greyLight, -bodyWidth / 2 + 1, bodyHeight / 2 + 2, 0, supportGroup);
+
+        // Right support column
+        voxel(1.5, 4, 2, mats.grey, bodyWidth / 2 - 1, bodyHeight / 2 - 1, 0, supportGroup);
+        voxel(1.5, 3, 2.5, mats.greyLight, bodyWidth / 2 - 1, bodyHeight / 2 + 2, 0, supportGroup);
+
+        // Handle bar (orange) - wider
+        voxel(bodyWidth - 4, 2, 3, mats.orange, 0, handleY, 0, supportGroup);
+        voxel(bodyWidth - 6, 1.5, 2.5, mats.orangeLight, 0, handleY, 0.5, supportGroup);
+
+        // Handle connection brackets (grey)
+        voxel(2, 2.5, 2.5, mats.grey, -bodyWidth / 2 + 3, handleY - 0.5, 0, supportGroup);
+        voxel(2, 2.5, 2.5, mats.grey, bodyWidth / 2 - 3, handleY - 0.5, 0, supportGroup);
+
+        radioGroup.add(supportGroup);
+
+        // ============================================================
+        // BACK PANEL - Black Technic Style with Holes
+        // ============================================================
+        const backZ = -bodyDepth / 2;
+
+        // Main black back panel
+        voxel(bodyWidth - 2, bodyHeight - 2, 1, mats.black, 0, 0, backZ);
+
+        // Mint green border around back
+        voxel(bodyWidth, 1.5, 1, mats.mint, 0, bodyHeight / 2 - 1, backZ - 0.3);
+        voxel(bodyWidth, 1.5, 1, mats.mint, 0, -bodyHeight / 2 + 1, backZ - 0.3);
+        voxel(1.5, bodyHeight, 1, mats.mint, -bodyWidth / 2 + 0.5, 0, backZ - 0.3);
+        voxel(1.5, bodyHeight, 1, mats.mint, bodyWidth / 2 - 0.5, 0, backZ - 0.3);
+
+        // Technic holes pattern (using cylinder instances) - adjusted for wider/shorter body
+        const holeGeom = new THREE.CylinderGeometry(0.5, 0.5, 1.3, 8);
+        holeGeom.rotateX(Math.PI / 2);
+
+        // Calculate hole positions for different sections - wider layout
+        const holeSections = [
+            // Top row spanning width
+            { x: -16, y: 4, cols: 10, rows: 2 },
+            // Left middle section
+            { x: -16, y: 0, cols: 5, rows: 2 },
+            // Right middle section  
+            { x: 6, y: 0, cols: 6, rows: 2 },
+            // Bottom row spanning width
+            { x: -16, y: -4, cols: 18, rows: 2 }
+        ];
+
+        let totalHoles = 0;
+        holeSections.forEach(sec => totalHoles += sec.cols * sec.rows);
+
+        const holesMesh = new THREE.InstancedMesh(holeGeom, mats.blackMatte, totalHoles);
+        const hDummy = new THREE.Object3D();
+        let hIdx = 0;
+
+        holeSections.forEach(section => {
+            for (let col = 0; col < section.cols; col++) {
+                for (let row = 0; row < section.rows; row++) {
+                    hDummy.position.set(
+                        section.x + col * 1.8,
+                        section.y - row * 1.8,
+                        backZ - 0.3
+                    );
+                    hDummy.updateMatrix();
+                    holesMesh.setMatrixAt(hIdx++, hDummy.matrix);
+                }
+            }
+        });
+        radioGroup.add(holesMesh);
+
+        // Raised sections on back (rectangles representing components)
+        voxel(8, 2, 0.5, mats.blackMatte, 12, 4, backZ - 0.6);
+        voxel(5, 2, 0.5, mats.blackMatte, -14, 4, backZ - 0.6);
+        // Additional raised component block on bottom right (matching technic style)
+        voxel(6, 3, 0.5, mats.blackMatte, bodyWidth / 2 - 6, -3, backZ - 0.6);
+
+        // ============================================================
+        // ANTENNA - Multi-segment Telescoping
+        // ============================================================
         const antennaGroup = new THREE.Group();
-        antennaGroup.position.set(10, 11, -5);
-        antennaGroup.rotation.z = Math.PI / 4;
-        antennaGroup.rotation.x = -Math.PI / 8;
+        antennaGroup.position.set(bodyWidth / 2 - 3, bodyHeight / 2 - 2, -2);
 
-        const segMat = mats.metal;
-        // Base
-        const antBase = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 1, 16), mats.black);
-        antennaGroup.add(antBase);
-        // Segments
-        const seg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 8, 16), segMat);
-        seg1.position.y = 4;
-        antennaGroup.add(seg1);
-        const seg2 = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 8, 16), segMat);
-        seg2.position.y = 11;
-        antennaGroup.add(seg2);
-        const seg3 = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 8, 16), segMat);
-        seg3.position.y = 18;
-        antennaGroup.add(seg3);
-        // Tip
-        const antTip = new THREE.Mesh(new THREE.SphereGeometry(0.4), segMat);
-        antTip.position.y = 22;
-        antennaGroup.add(antTip);
+        // Antenna base mount (grey block)
+        voxel(2, 2, 2, mats.grey, 0, 0, 0, antennaGroup);
 
+        // Antenna pivot (dark grey)
+        const pivotGeom = new THREE.CylinderGeometry(0.8, 0.8, 1.5, 8);
+        const pivot = new THREE.Mesh(pivotGeom, mats.greyDark);
+        pivot.rotation.z = Math.PI / 2;
+        pivot.position.set(0, 1.5, 0);
+        antennaGroup.add(pivot);
+
+        // Antenna segments group (can be rotated as one unit)
+        const antennaSegments = new THREE.Group();
+        antennaSegments.position.set(0, 2, 0);
+        antennaSegments.rotation.z = Math.PI / 4.5; // Angled
+        antennaSegments.rotation.x = -0.1;
+
+        // Base segment (thickest)
+        const seg1Geom = new THREE.BoxGeometry(1.2, 12, 1.2);
+        const seg1 = new THREE.Mesh(seg1Geom, mats.grey);
+        seg1.position.y = 6;
+        antennaSegments.add(seg1);
+
+        // Middle segment
+        const seg2Geom = new THREE.BoxGeometry(0.9, 10, 0.9);
+        const seg2 = new THREE.Mesh(seg2Geom, mats.greyLight);
+        seg2.position.y = 17;
+        antennaSegments.add(seg2);
+
+        // Top segment (thinnest)
+        const seg3Geom = new THREE.BoxGeometry(0.6, 10, 0.6);
+        const seg3 = new THREE.Mesh(seg3Geom, mats.metal);
+        seg3.position.y = 27;
+        antennaSegments.add(seg3);
+
+        // Antenna tip
+        const tipGeom = new THREE.BoxGeometry(1, 1.5, 1);
+        const tip = new THREE.Mesh(tipGeom, mats.greyDark);
+        tip.position.y = 33;
+        antennaSegments.add(tip);
+
+        antennaGroup.add(antennaSegments);
         radioGroup.add(antennaGroup);
 
+        // ============================================================
+        // BOTTOM DETAILS
+        // ============================================================
+        // Orange accent strip at bottom
+        voxel(bodyWidth - 4, 1, bodyDepth + 1, mats.orange, 0, -bodyHeight / 2 - 0.5, 0);
+
+        // Feet (small grey blocks) - spread wider for new body width
+        voxel(3, 1, 2, mats.grey, -15, -bodyHeight / 2 - 0.5, 2);
+        voxel(3, 1, 2, mats.grey, 15, -bodyHeight / 2 - 0.5, 2);
+        voxel(3, 1, 2, mats.grey, -15, -bodyHeight / 2 - 0.5, -2);
+        voxel(3, 1, 2, mats.grey, 15, -bodyHeight / 2 - 0.5, -2);
+
+        // Position radio 20% closer to bottom
+        radioGroup.position.y = -8;
+
+        // Add radio to scene
         scene.add(radioGroup);
 
         // --- Music Notes Effect ---
@@ -600,13 +786,13 @@
         function createLowPolyCat(color) {
             const catRoot = new THREE.Group();
             const catModel = new THREE.Group();
-            
+
             // Fix Orientation: Cat built along -X, rotate to face +Z
-            catModel.rotation.y = Math.PI / 2; 
+            catModel.rotation.y = Math.PI / 2;
             catRoot.add(catModel);
 
             const mat = new THREE.MeshLambertMaterial({ color: color, flatShading: true });
-            
+
             // Body (Cylinder along X)
             const body = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.5, 4, 5), mat);
             body.rotation.z = Math.PI / 2;
@@ -616,7 +802,7 @@
             // Head (at -X end)
             const head = new THREE.Mesh(new THREE.IcosahedronGeometry(1.2, 0), mat);
             head.position.set(-2.5, 3.5, 0);
-            head.rotation.y = -Math.PI / 4; 
+            head.rotation.y = -Math.PI / 4;
             catModel.add(head);
 
             // Ears
@@ -625,7 +811,7 @@
             leftEar.position.set(-2.5, 4.5, 0.6);
             leftEar.rotation.x = 0.5;
             catModel.add(leftEar);
-            
+
             const rightEar = new THREE.Mesh(earGeom, mat);
             rightEar.position.set(-2.5, 4.5, -0.6);
             rightEar.rotation.x = -0.5;
@@ -637,7 +823,7 @@
                 [-1.5, 1, 0.8], [-1.5, 1, -0.8],
                 [1.5, 1, 0.8], [1.5, 1, -0.8]
             ];
-            
+
             positions.forEach(pos => {
                 const leg = new THREE.Mesh(legGeom, mat);
                 leg.position.set(...pos);
@@ -659,12 +845,12 @@
         function updateCats() {
             const vol = volumeLevels[currentVolumeIndex];
             const currentStation = stations[currentStationIndex];
-            
+
             // Only show cats for "DANCE: Techno"
             const isTargetStation = currentStation.name.includes("Techno");
-            
+
             let targetCount = 0;
-            
+
             if (isTargetStation) {
                 if (vol >= 0.25) targetCount = 4;
                 if (vol >= 0.5) targetCount = 8;
@@ -673,14 +859,14 @@
             } else {
                 targetCount = 0; // No cats for other stations
             }
-            
+
             // Clear existing timeout if volume changed rapidly
             if (catSpawnTimeout) clearTimeout(catSpawnTimeout);
 
             if (targetCount === 0) {
                 // Remove all cats immediately
-                while(catsGroup.children.length > 0){ 
-                    catsGroup.remove(catsGroup.children[0]); 
+                while (catsGroup.children.length > 0) {
+                    catsGroup.remove(catsGroup.children[0]);
                 }
             } else {
                 // If we are turning ON (cats count is 0), wait 2 seconds
@@ -697,7 +883,7 @@
 
         function adjustCatCount(target) {
             const current = catsGroup.children.length;
-            
+
             // Get currently used colors to avoid duplicates if possible
             const usedColors = new Set();
             catsGroup.children.forEach(c => {
@@ -717,15 +903,17 @@
                     usedColors.add(color);
 
                     const cat = createLowPolyCat(color);
-                    
+
                     // Spawn far away (outside typical viewport)
                     const angle = Math.random() * Math.PI * 2;
-                    const spawnRadius = 150; 
+                    const spawnRadius = 150;
                     const targetRadius = 25 + Math.random() * 15;
-                    
-                    cat.position.set(Math.cos(angle) * spawnRadius, -10, Math.sin(angle) * spawnRadius);
-                    cat.lookAt(0, -5, 0); // Root looks at center
-                    
+
+                    // Position cats at same base level as radio (Y=-8 minus radio's half height)
+                    const catGroundY = -8 - 8 - 1; // Radio Y position - half body height - offset
+                    cat.position.set(Math.cos(angle) * spawnRadius, catGroundY, Math.sin(angle) * spawnRadius);
+                    cat.lookAt(0, catGroundY, 0); // Root looks at center at ground level
+
                     cat.userData = {
                         model: cat.userData.model, // Ref to inner model
                         targetRadius: targetRadius,
@@ -733,7 +921,7 @@
                         dancePhase: Math.random() * Math.PI * 2,
                         speed: 0.15 + Math.random() * 0.1
                     };
-                    
+
                     catsGroup.add(cat);
                 }
             } else if (current > target) {
@@ -769,7 +957,7 @@
             if (intersects.length > 0) {
                 // Find the knob parent if we hit a child (ridge)
                 let clicked = intersects[0].object;
-                while(clicked.parent && clicked.name !== "volumeKnob" && clicked.name !== "stationKnob" && clicked.parent !== radioGroup) {
+                while (clicked.parent && clicked.name !== "volumeKnob" && clicked.name !== "stationKnob" && clicked.parent !== radioGroup) {
                     clicked = clicked.parent;
                 }
 
@@ -793,15 +981,18 @@
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
-            
+
+            // Rotation disabled for now - uncomment to enable
+            // radioGroup.rotation.y += 0.005;
+
             // Note Animation
             if (isPoweredOn && volumeLevels[currentVolumeIndex] > 0 && !player.paused) {
                 if (Math.random() < 0.05) spawnNote();
             }
-            
+
             // Cat Animation (Walking & Dancing)
             if (catsGroup.children.length > 0) {
-                const time = Date.now() * 0.005; 
+                const time = Date.now() * 0.005;
                 catsGroup.children.forEach(cat => {
                     if (cat.userData) {
                         const dist = Math.sqrt(cat.position.x * cat.position.x + cat.position.z * cat.position.z);
@@ -812,7 +1003,7 @@
                             const moveSpeed = 0.3;
                             cat.position.x -= Math.cos(cat.userData.angle) * moveSpeed;
                             cat.position.z -= Math.sin(cat.userData.angle) * moveSpeed;
-                            
+
                             // Walking Animation (Tilt inner model)
                             model.rotation.x = Math.sin(time * 3 + cat.userData.dancePhase) * 0.15; // Rock body
                             model.position.y = Math.abs(Math.sin(time * 3 + cat.userData.dancePhase)) * 0.8; // Hop
@@ -820,7 +1011,7 @@
                             // Dancing in place
                             model.rotation.x = Math.sin(time * 2 + cat.userData.dancePhase) * 0.2; // Rolling sway
                             model.rotation.y = Math.PI / 2 + Math.sin(time) * 0.2; // Look around
-                            model.position.y = 0; 
+                            model.position.y = 0;
                         }
                     }
                 });
@@ -837,7 +1028,7 @@
                     activeNotes.splice(i, 1);
                 }
             }
-            
+
             renderer.render(scene, camera);
         }
 
@@ -852,4 +1043,5 @@
         animate();
     </script>
 </body>
+
 </html>
